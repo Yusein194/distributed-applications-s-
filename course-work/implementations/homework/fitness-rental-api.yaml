@@ -1,0 +1,1229 @@
+openapi: 3.0.3
+info:
+  title: Fitness Rental System API
+  description: |
+    REST API за система за наемане на фитнес оборудване.
+    Поддържа управление на потребители, фитнес уреди и наеми.
+    
+    ## Автентикация
+    API използва **JWT Bearer токени** за автентикация.
+    Токенът се получава чрез `/api/Auth/login` и се подава в заглавката:
+    `Authorization: Bearer <token>`
+    
+    ## Роли
+    - **User** – може да разглежда уреди и да управлява свои наеми
+    - **Admin** – пълен достъп до всички ресурси
+  version: 1.0.0
+  contact:
+    name: FitnessRentalSystem Support
+
+servers:
+  - url: https://localhost:7001/api
+    description: Development server (HTTPS)
+  - url: http://localhost:5001/api
+    description: Development server (HTTP)
+
+tags:
+  - name: Auth
+    description: Регистрация и вход в системата
+  - name: Users
+    description: Управление на потребители (само Admin)
+  - name: FitnessEquipments
+    description: Управление на фитнес оборудване
+  - name: EquipmentRentals
+    description: Управление на наеми на оборудване
+
+paths:
+
+  # ─────────────────────────────────────────────
+  # AUTH
+  # ─────────────────────────────────────────────
+
+  /Auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Регистрация на нов потребител
+      description: |
+        Създава нов потребителски акаунт. Автоматично се задава роля "User" и се хешира паролата с BCrypt.
+        Връща основни данни за създадения потребител (без парола).
+      operationId: Register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+            example:
+              firstName: "Иван"
+              lastName: "Иванов"
+              email: "ivan@example.com"
+              password: "Parola123"
+              phoneNumber: "0888123456"
+      responses:
+        '200':
+          description: Потребителят е регистриран успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Имейлът вече съществува
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "Email already exists."
+
+  /Auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Вход в системата
+      description: |
+        Автентикира потребител с имейл и парола. При успех връща JWT токен и основни данни.
+        Токенът трябва да се подава в заглавката `Authorization: Bearer <token>` при всички защитени endpoints.
+      operationId: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+            example:
+              email: "ivan@example.com"
+              password: "Parola123"
+      responses:
+        '200':
+          description: Успешен вход – връща JWT токен и потребителски данни
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Невалиден имейл/парола или неактивен акаунт
+          content:
+            application/json:
+              schema:
+                type: string
+              examples:
+                invalidCredentials:
+                  value: "Invalid email or password."
+                inactiveAccount:
+                  value: "User account is inactive."
+
+  # ─────────────────────────────────────────────
+  # USERS
+  # ─────────────────────────────────────────────
+
+  /Users:
+    get:
+      tags:
+        - Users
+      summary: Списък с потребители (с филтриране, сортиране и пагинация)
+      description: |
+        Връща страниран списък с потребители. Поддържа филтриране по множество полета
+        и сортиране по избрана колона.
+        **Изисква роля Admin.**
+      operationId: GetUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: firstName
+          in: query
+          description: Филтър по собствено име (частично съвпадение)
+          schema:
+            type: string
+        - name: lastName
+          in: query
+          description: Филтър по фамилно име (частично съвпадение)
+          schema:
+            type: string
+        - name: email
+          in: query
+          description: Филтър по имейл (частично съвпадение)
+          schema:
+            type: string
+        - name: role
+          in: query
+          description: Филтър по роля (User / Admin)
+          schema:
+            type: string
+            enum: [User, Admin]
+        - name: isActive
+          in: query
+          description: Филтър по активност на акаунта
+          schema:
+            type: boolean
+        - name: pageNumber
+          in: query
+          description: Номер на страницата (започва от 1)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          description: Брой записи на страница
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sortBy
+          in: query
+          description: Поле за сортиране
+          schema:
+            type: string
+            enum: [firstName, lastName, email, role, createdAt]
+            default: firstName
+        - name: sortDirection
+          in: query
+          description: Посока на сортиране
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Списък с потребители
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserGetDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags:
+        - Users
+      summary: Създаване на потребител (Admin)
+      description: |
+        Създава нов потребител с определена роля. Паролата се хешира автоматично.
+        Проверява се за дублиране на имейл.
+        **Изисква роля Admin.**
+      operationId: CreateUser
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateDto'
+            example:
+              firstName: "Мария"
+              lastName: "Петрова"
+              email: "maria@example.com"
+              passwordHash: "Parola456"
+              role: "User"
+              phoneNumber: "0877654321"
+              isActive: true
+      responses:
+        '201':
+          description: Потребителят е създаден успешно
+          headers:
+            Location:
+              description: URL на новосъздадения потребител
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserGetDto'
+        '400':
+          description: Имейлът вече съществува
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /Users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Детайли за конкретен потребител
+      description: |
+        Връща пълна информация за потребител по ID.
+        **Изисква роля Admin.**
+      operationId: GetUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Данни за потребителя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserGetDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Users
+      summary: Обновяване на потребител
+      description: |
+        Обновява данните на съществуващ потребител. Проверява се за дублиране на имейл с друг потребител.
+        **Изисква роля Admin.**
+      operationId: UpdateUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateDto'
+      responses:
+        '204':
+          description: Потребителят е обновен успешно
+        '400':
+          description: Имейлът вече се използва от друг потребител
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Users
+      summary: Изтриване на потребител
+      description: |
+        Изтрива потребител по ID. Операцията е необратима.
+        **Изисква роля Admin.**
+      operationId: DeleteUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Потребителят е изтрит успешно
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────────
+  # FITNESS EQUIPMENTS
+  # ─────────────────────────────────────────────
+
+  /FitnessEquipments:
+    get:
+      tags:
+        - FitnessEquipments
+      summary: Списък с фитнес оборудване (с филтриране и пагинация)
+      description: |
+        Връща страниран и сортиран списък с фитнес уреди.
+        Поддържа case-insensitive търсене по множество полета.
+        **Изисква автентикация (User или Admin).**
+      operationId: GetFitnessEquipments
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          description: Филтър по наименование (частично, без значение на регистъра)
+          schema:
+            type: string
+        - name: brand
+          in: query
+          description: Филтър по марка (частично, без значение на регистъра)
+          schema:
+            type: string
+        - name: equipmentType
+          in: query
+          description: Филтър по тип оборудване (частично, без значение на регистъра)
+          schema:
+            type: string
+        - name: isAvailable
+          in: query
+          description: Филтър по наличност
+          schema:
+            type: boolean
+        - name: pageNumber
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [name, brand, equipmentType, rentalPricePerDay, createdAt]
+            default: name
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Списък с оборудване
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FitnessEquipmentGetDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - FitnessEquipments
+      summary: Добавяне на ново оборудване
+      description: |
+        Създава нов запис за фитнес оборудване. Полето `createdAt` се задава автоматично.
+        **Изисква роля Admin.**
+      operationId: CreateFitnessEquipment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FitnessEquipmentCreateDto'
+            example:
+              name: "Бягаща пътека Horizon T101"
+              brand: "Horizon"
+              equipmentType: "Cardio"
+              functionality: "Бягаща пътека с 12 програми и наклон до 10%"
+              weight: 78.5
+              rentalPricePerDay: 25.00
+              isAvailable: true
+              imageUrl: "https://example.com/images/treadmill.jpg"
+      responses:
+        '201':
+          description: Оборудването е добавено успешно
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FitnessEquipmentGetDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /FitnessEquipments/{id}:
+    get:
+      tags:
+        - FitnessEquipments
+      summary: Детайли за конкретен уред
+      description: |
+        Връща пълна информация за фитнес уред по ID.
+        **Изисква автентикация (User или Admin).**
+      operationId: GetFitnessEquipment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Данни за оборудването
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FitnessEquipmentGetDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - FitnessEquipments
+      summary: Обновяване на оборудване
+      description: |
+        Обновява данните на съществуващ фитнес уред.
+        **Изисква роля Admin.**
+      operationId: UpdateFitnessEquipment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FitnessEquipmentUpdateDto'
+      responses:
+        '204':
+          description: Оборудването е обновено успешно
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - FitnessEquipments
+      summary: Изтриване на оборудване
+      description: |
+        Изтрива фитнес уред по ID. Операцията е необратима.
+        **Изисква роля Admin.**
+      operationId: DeleteFitnessEquipment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Оборудването е изтрито успешно
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────────
+  # EQUIPMENT RENTALS
+  # ─────────────────────────────────────────────
+
+  /EquipmentRentals:
+    get:
+      tags:
+        - EquipmentRentals
+      summary: Списък с наеми (с филтриране и пагинация)
+      description: |
+        Връща страниран списък с наеми. Включва свързани данни за потребителя (email)
+        и оборудването (name).
+        **Изисква автентикация (User или Admin).**
+      operationId: GetEquipmentRentals
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: Филтър по ID на потребителя
+          schema:
+            type: integer
+        - name: fitnessEquipmentId
+          in: query
+          description: Филтър по ID на оборудването
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: Филтър по статус на наема (частично съвпадение)
+          schema:
+            type: string
+            enum: [Active, Returned, Cancelled]
+        - name: rentDate
+          in: query
+          description: Филтър по дата на наемане (само датата, без час)
+          schema:
+            type: string
+            format: date
+            example: "2026-06-01"
+        - name: pageNumber
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [rentDate, status, totalPrice, createdAt]
+            default: rentDate
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Списък с наеми
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EquipmentRentalGetDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - EquipmentRentals
+      summary: Създаване на нов наем
+      description: |
+        Регистрира нов наем на фитнес оборудване. Полето `createdAt` се задава автоматично.
+        Отговорът включва свързани данни (email на потребителя и name на оборудването).
+        **Изисква автентикация (User или Admin).**
+      operationId: CreateEquipmentRental
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentRentalCreateDto'
+            example:
+              userId: 3
+              fitnessEquipmentId: 1
+              rentDate: "2026-06-01T10:00:00Z"
+              returnDate: "2026-06-07T10:00:00Z"
+              totalPrice: 175.00
+              status: "Active"
+      responses:
+        '201':
+          description: Наемът е създаден успешно
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentRentalGetDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /EquipmentRentals/{id}:
+    get:
+      tags:
+        - EquipmentRentals
+      summary: Детайли за конкретен наем
+      description: |
+        Връща пълна информация за наем по ID, включително свързани данни.
+        **Изисква автентикация (User или Admin).**
+      operationId: GetEquipmentRental
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Данни за наема
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentRentalGetDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - EquipmentRentals
+      summary: Обновяване на наем
+      description: |
+        Обновява данните на съществуващ наем (напр. промяна на статус, дата на връщане).
+        **Изисква автентикация (User или Admin).**
+      operationId: UpdateEquipmentRental
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentRentalUpdateDto'
+      responses:
+        '204':
+          description: Наемът е обновен успешно
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - EquipmentRentals
+      summary: Изтриване на наем
+      description: |
+        Изтрива запис за наем по ID. Операцията е необратима.
+        **Изисква роля Admin.**
+      operationId: DeleteEquipmentRental
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Наемът е изтрит успешно
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+# ─────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен получен от `/api/Auth/login`
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      description: Уникален идентификатор на ресурса
+      schema:
+        type: integer
+        minimum: 1
+
+  responses:
+    Unauthorized:
+      description: Липсва или е невалиден JWT токен
+      content:
+        application/json:
+          schema:
+            type: string
+            example: "Unauthorized"
+    Forbidden:
+      description: Потребителят няма необходимата роля (изисква Admin)
+      content:
+        application/json:
+          schema:
+            type: string
+            example: "Forbidden"
+    NotFound:
+      description: Ресурсът не е намерен
+      content:
+        application/json:
+          schema:
+            type: string
+            example: "Not Found"
+
+  schemas:
+
+    # ── Auth ──────────────────────────────────
+
+    RegisterDto:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - password
+      properties:
+        firstName:
+          type: string
+          maxLength: 50
+          description: Собствено име на потребителя
+          example: "Иван"
+        lastName:
+          type: string
+          maxLength: 50
+          description: Фамилно име на потребителя
+          example: "Иванов"
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          description: Уникален имейл адрес
+          example: "ivan@example.com"
+        password:
+          type: string
+          minLength: 6
+          maxLength: 100
+          description: Парола (мин. 6 символа); хешира се с BCrypt преди съхранение
+          example: "Parola123"
+        phoneNumber:
+          type: string
+          maxLength: 20
+          nullable: true
+          description: Телефонен номер (незадължително)
+          example: "0888123456"
+
+    RegisterResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "User registered successfully."
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          description: Имейл адрес на потребителя
+          example: "ivan@example.com"
+        password:
+          type: string
+          maxLength: 100
+          description: Парола на потребителя
+          example: "Parola123"
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Bearer токен (валиден за конфигурирания период)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    UserBasic:
+      type: object
+      description: Основни данни за потребителя (без чувствителна информация)
+      properties:
+        id:
+          type: integer
+          example: 1
+        firstName:
+          type: string
+          example: "Иван"
+        lastName:
+          type: string
+          example: "Иванов"
+        email:
+          type: string
+          example: "ivan@example.com"
+        role:
+          type: string
+          enum: [User, Admin]
+          example: "User"
+
+    # ── Users ─────────────────────────────────
+
+    UserGetDto:
+      type: object
+      description: Пълни данни за потребител (отговор от API)
+      properties:
+        id:
+          type: integer
+          description: Уникален идентификатор
+          example: 1
+        firstName:
+          type: string
+          maxLength: 50
+          example: "Иван"
+        lastName:
+          type: string
+          maxLength: 50
+          example: "Иванов"
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          example: "ivan@example.com"
+        role:
+          type: string
+          enum: [User, Admin]
+          maxLength: 20
+          example: "User"
+        phoneNumber:
+          type: string
+          maxLength: 20
+          nullable: true
+          example: "0888123456"
+        isActive:
+          type: boolean
+          description: Дали акаунтът е активен
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и час на създаване (UTC)
+          example: "2026-05-14T10:00:00Z"
+
+    UserCreateDto:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - passwordHash
+        - role
+      properties:
+        firstName:
+          type: string
+          maxLength: 50
+          example: "Мария"
+        lastName:
+          type: string
+          maxLength: 50
+          example: "Петрова"
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          description: Уникален имейл (валидира се с [EmailAddress])
+          example: "maria@example.com"
+        passwordHash:
+          type: string
+          minLength: 6
+          maxLength: 256
+          description: Парола в plaintext; хешира се преди съхранение
+          example: "Parola456"
+        role:
+          type: string
+          enum: [User, Admin]
+          maxLength: 20
+          default: "User"
+          example: "User"
+        phoneNumber:
+          type: string
+          maxLength: 20
+          nullable: true
+          example: "0877654321"
+        isActive:
+          type: boolean
+          default: true
+          example: true
+
+    UserUpdateDto:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - role
+      properties:
+        firstName:
+          type: string
+          maxLength: 50
+          example: "Мария"
+        lastName:
+          type: string
+          maxLength: 50
+          example: "Петрова"
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          description: Не трябва да съвпада с имейл на друг потребител
+          example: "maria@example.com"
+        role:
+          type: string
+          enum: [User, Admin]
+          maxLength: 20
+          example: "Admin"
+        phoneNumber:
+          type: string
+          maxLength: 20
+          nullable: true
+          example: "0877654321"
+        isActive:
+          type: boolean
+          example: true
+
+    # ── FitnessEquipments ─────────────────────
+
+    FitnessEquipmentGetDto:
+      type: object
+      description: Пълни данни за фитнес оборудване
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          maxLength: 100
+          example: "Бягаща пътека Horizon T101"
+        brand:
+          type: string
+          maxLength: 50
+          example: "Horizon"
+        equipmentType:
+          type: string
+          maxLength: 50
+          example: "Cardio"
+        functionality:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: "Бягаща пътека с 12 програми и наклон до 10%"
+        weight:
+          type: number
+          format: double
+          description: Тегло в килограми
+          example: 78.5
+        rentalPricePerDay:
+          type: number
+          format: decimal
+          description: Цена за наем на ден (в лева)
+          example: 25.00
+        isAvailable:
+          type: boolean
+          description: Дали уредът е наличен за наемане
+          example: true
+        imageUrl:
+          type: string
+          maxLength: 500
+          nullable: true
+          example: "https://example.com/images/treadmill.jpg"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-14T10:00:00Z"
+
+    FitnessEquipmentCreateDto:
+      type: object
+      required:
+        - name
+        - brand
+        - equipmentType
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          example: "Бягаща пътека Horizon T101"
+        brand:
+          type: string
+          maxLength: 50
+          example: "Horizon"
+        equipmentType:
+          type: string
+          maxLength: 50
+          description: Тип оборудване (напр. Cardio, Strength, Flexibility)
+          example: "Cardio"
+        functionality:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: "Бягаща пътека с 12 програми и наклон до 10%"
+        weight:
+          type: number
+          format: double
+          example: 78.5
+        rentalPricePerDay:
+          type: number
+          format: decimal
+          example: 25.00
+        isAvailable:
+          type: boolean
+          default: true
+          example: true
+        imageUrl:
+          type: string
+          maxLength: 500
+          nullable: true
+          example: "https://example.com/images/treadmill.jpg"
+
+    FitnessEquipmentUpdateDto:
+      type: object
+      required:
+        - name
+        - brand
+        - equipmentType
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          example: "Бягаща пътека Horizon T101 Pro"
+        brand:
+          type: string
+          maxLength: 50
+          example: "Horizon"
+        equipmentType:
+          type: string
+          maxLength: 50
+          example: "Cardio"
+        functionality:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: "Обновена версия с 15 програми"
+        weight:
+          type: number
+          format: double
+          example: 80.0
+        rentalPricePerDay:
+          type: number
+          format: decimal
+          example: 30.00
+        isAvailable:
+          type: boolean
+          example: false
+        imageUrl:
+          type: string
+          maxLength: 500
+          nullable: true
+          example: "https://example.com/images/treadmill-pro.jpg"
+
+    # ── EquipmentRentals ──────────────────────
+
+    EquipmentRentalGetDto:
+      type: object
+      description: Пълни данни за наем с денормализирани полета
+      properties:
+        id:
+          type: integer
+          example: 1
+        userId:
+          type: integer
+          description: ID на потребителя, направил наема
+          example: 3
+        fitnessEquipmentId:
+          type: integer
+          description: ID на наетия уред
+          example: 1
+        rentDate:
+          type: string
+          format: date-time
+          description: Дата и час на началото на наема
+          example: "2026-06-01T10:00:00Z"
+        returnDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Дата и час на връщане (null ако не е върнат)
+          example: "2026-06-07T10:00:00Z"
+        totalPrice:
+          type: number
+          format: decimal
+          description: Обща цена на наема в лева
+          example: 175.00
+        status:
+          type: string
+          enum: [Active, Returned, Cancelled]
+          maxLength: 20
+          description: Текущ статус на наема
+          example: "Active"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-01T09:55:00Z"
+        userEmail:
+          type: string
+          description: Имейл на потребителя (денормализиран)
+          example: "ivan@example.com"
+        equipmentName:
+          type: string
+          description: Наименование на оборудването (денормализиран)
+          example: "Бягаща пътека Horizon T101"
+
+    EquipmentRentalCreateDto:
+      type: object
+      required:
+        - userId
+        - fitnessEquipmentId
+        - rentDate
+        - status
+      properties:
+        userId:
+          type: integer
+          description: ID на потребителя (трябва да съществува)
+          example: 3
+        fitnessEquipmentId:
+          type: integer
+          description: ID на оборудването (трябва да съществува)
+          example: 1
+        rentDate:
+          type: string
+          format: date-time
+          description: Начална дата на наема
+          example: "2026-06-01T10:00:00Z"
+        returnDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Планирана дата на връщане (незадължително)
+          example: "2026-06-07T10:00:00Z"
+        totalPrice:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 100000
+          description: Обща цена на наема
+          example: 175.00
+        status:
+          type: string
+          enum: [Active, Returned, Cancelled]
+          maxLength: 20
+          default: "Active"
+          example: "Active"
+
+    EquipmentRentalUpdateDto:
+      type: object
+      required:
+        - userId
+        - fitnessEquipmentId
+        - rentDate
+        - status
+      properties:
+        userId:
+          type: integer
+          example: 3
+        fitnessEquipmentId:
+          type: integer
+          example: 1
+        rentDate:
+          type: string
+          format: date-time
+          example: "2026-06-01T10:00:00Z"
+        returnDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-06-07T10:00:00Z"
+        totalPrice:
+          type: number
+          format: decimal
+          example: 175.00
+        status:
+          type: string
+          enum: [Active, Returned, Cancelled]
+          maxLength: 20
+          example: "Returned"
