@@ -1,0 +1,52 @@
+﻿@model FitnessRental.Web.Models.UserViewModel
+
+@{
+    ViewData["Title"] = "User Details";
+    var role = Context.Session.GetString("UserRole");
+}
+
+@if (role != "Admin")
+{
+    <div class="alert alert-danger">
+        Only Admin can view user details.
+    </div>
+
+    <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Back</a>
+
+    return;
+}
+
+<h2>User Details</h2>
+
+<hr />
+
+<dl class="row">
+    <dt class="col-sm-3">First Name</dt>
+    <dd class="col-sm-9">@Model.FirstName</dd>
+
+    <dt class="col-sm-3">Last Name</dt>
+    <dd class="col-sm-9">@Model.LastName</dd>
+
+    <dt class="col-sm-3">Email</dt>
+    <dd class="col-sm-9">@Model.Email</dd>
+
+    <dt class="col-sm-3">Role</dt>
+    <dd class="col-sm-9">@Model.Role</dd>
+
+    <dt class="col-sm-3">Phone Number</dt>
+    <dd class="col-sm-9">@Model.PhoneNumber</dd>
+
+    <dt class="col-sm-3">Active</dt>
+    <dd class="col-sm-9">@(Model.IsActive ? "Yes" : "No")</dd>
+
+    <dt class="col-sm-3">Created At</dt>
+    <dd class="col-sm-9">@Model.CreatedAt</dd>
+</dl>
+
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+    Edit
+</a>
+
+<a asp-action="Index" class="btn btn-secondary">
+    Back
+</a>

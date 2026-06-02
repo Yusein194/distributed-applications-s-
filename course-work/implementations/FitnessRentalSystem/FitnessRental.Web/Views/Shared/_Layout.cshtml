@@ -1,0 +1,286 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
+    <title>
+        @ViewData["Title"] - Fitness Rental
+    </title>
+
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="~/FitnessRental.Web.styles.css"
+          asp-append-version="true" />
+
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+</head>
+
+<body>
+
+    @{
+        var email = Context.Session.GetString("UserEmail");
+        var role = Context.Session.GetString("UserRole");
+    }
+
+    <header>
+
+        <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+
+            <div class="container-fluid">
+
+                <a class="navbar-brand fw-bold"
+                   asp-controller="Home"
+                   asp-action="Index"
+                   style="font-size:1.4rem;">
+
+                    ⚡ POWER RENT
+
+                </a>
+
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#navbarContent">
+
+                    <span class="navbar-toggler-icon"></span>
+
+                </button>
+
+                <div class="collapse navbar-collapse"
+                     id="navbarContent">
+
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                        @if (!string.IsNullOrEmpty(email))
+                        {
+                            <li class="nav-item">
+
+                                <a class="nav-link"
+                                   asp-controller="Home"
+                                   asp-action="Index">
+
+                                    Fitness Hub
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link"
+                                   asp-controller="FitnessEquipments"
+                                   asp-action="Index">
+
+                                    Equipment
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link"
+                                   asp-controller="EquipmentRentals"
+                                   asp-action="Index">
+
+                                    Rentals
+
+                                </a>
+
+                            </li>
+
+                            @if (role == "Admin")
+                            {
+                                <li class="nav-item">
+
+                                    <a class="nav-link"
+                                       asp-controller="Users"
+                                       asp-action="Index">
+
+                                        Users
+
+                                    </a>
+
+                                </li>
+                            }
+                        }
+
+                    </ul>
+
+                    <ul class="navbar-nav align-items-center">
+
+                        @if (!string.IsNullOrEmpty(email))
+                        {
+                            <li class="nav-item me-3">
+
+                                <span class="nav-link text-light">
+
+                                    👤 @email
+
+                                    <span class="fw-bold text-info">
+                                        (@role)
+                                    </span>
+
+                                </span>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="btn btn-sm px-4"
+                                   asp-controller="Account"
+                                   asp-action="Logout"
+                                   style="
+                                       background:linear-gradient(135deg,#ef4444,#dc2626);
+                                       border:none;
+                                       color:white;
+                                       font-weight:700;
+                                       border-radius:12px;">
+
+                                    Logout
+
+                                </a>
+
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+
+                                <div class="d-flex gap-2">
+
+                                    <a asp-controller="Account"
+                                       asp-action="Login"
+                                       class="btn"
+                                       style="
+                                           background:linear-gradient(135deg,#38bdf8,#2563eb);
+                                           border:none;
+                                           color:white;
+                                           font-weight:700;
+                                           border-radius:12px;
+                                           padding:10px 22px;">
+
+                                        Login
+
+                                    </a>
+
+                                    <a asp-controller="Account"
+                                       asp-action="Register"
+                                       class="btn"
+                                       style="
+                                           background:linear-gradient(135deg,#a855f7,#7c3aed);
+                                           border:none;
+                                           color:white;
+                                           font-weight:700;
+                                           border-radius:12px;
+                                           padding:10px 22px;">
+
+                                        Register
+
+                                    </a>
+
+                                </div>
+
+                            </li>
+                        }
+
+                    </ul>
+
+                </div>
+
+            </div>
+
+        </nav>
+
+    </header>
+
+    <div class="app-wrapper">
+
+        <div class="container">
+
+            <main role="main" class="pb-4">
+
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm"
+                         role="alert">
+
+                        @TempData["Success"]
+
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert">
+                        </button>
+
+                    </div>
+                }
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm"
+                         role="alert">
+
+                        @TempData["Error"]
+
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert">
+                        </button>
+
+                    </div>
+                }
+
+                <div class="app-card">
+
+                    @RenderBody()
+
+                </div>
+
+            </main>
+
+        </div>
+
+    </div>
+
+    <footer class="app-footer">
+
+        <div class="container text-center">
+
+            © 2026 POWER RENT
+
+        </div>
+
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="~/js/site.js"
+            asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+
+</html>

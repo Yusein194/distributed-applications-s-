@@ -1,0 +1,316 @@
+﻿           @model IEnumerable<FitnessRental.Web.Models.EquipmentRentalViewModel>
+
+@{
+    ViewData["Title"] = "Equipment Rentals";
+    var role = Context.Session.GetString("UserRole");
+    int pageNumber = ViewBag.PageNumber ?? 1;
+}
+
+<h2>Equipment Rentals</h2>
+
+@if (role != "Admin")
+{
+    <p>
+        <a asp-action="Create"
+           class="btn btn-primary">
+            Add New Rental
+        </a>
+    </p>
+}
+
+<form asp-action="Index" method="get" class="row mb-3">
+
+    <input type="hidden" name="pageNumber" value="1" />
+
+    <div class="col-md-2">
+        <input name="userEmail"
+               value="@ViewBag.UserEmail"
+               class="form-control"
+               placeholder="Search by user" />
+    </div>
+
+    <div class="col-md-2">
+        <input name="equipmentName"
+               value="@ViewBag.EquipmentName"
+               class="form-control"
+               placeholder="Search by equipment" />
+    </div>
+
+    <div class="col-md-2">
+
+        <select name="status"
+                class="form-control">
+
+            <option value="">All Statuses</option>
+
+            @if (ViewBag.Status == "Active")
+            {
+                <option value="Active" selected>
+                    Active
+                </option>
+            }
+            else
+            {
+                <option value="Active">
+                    Active
+                </option>
+            }
+
+            @if (ViewBag.Status == "Returned")
+            {
+                <option value="Returned" selected>
+                    Returned
+                </option>
+            }
+            else
+            {
+                <option value="Returned">
+                    Returned
+                </option>
+            }
+
+            @if (ViewBag.Status == "Cancelled")
+            {
+                <option value="Cancelled" selected>
+                    Cancelled
+                </option>
+            }
+            else
+            {
+                <option value="Cancelled">
+                    Cancelled
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-2">
+
+        <select name="sortBy"
+                class="form-control">
+
+            @if (ViewBag.SortBy == "rentDate")
+            {
+                <option value="rentDate" selected>
+                    Sort by Rent Date
+                </option>
+            }
+            else
+            {
+                <option value="rentDate">
+                    Sort by Rent Date
+                </option>
+            }
+
+            @if (ViewBag.SortBy == "returnDate")
+            {
+                <option value="returnDate" selected>
+                    Sort by Return Date
+                </option>
+            }
+            else
+            {
+                <option value="returnDate">
+                    Sort by Return Date
+                </option>
+            }
+
+            @if (ViewBag.SortBy == "totalPrice")
+            {
+                <option value="totalPrice" selected>
+                    Sort by Total Price
+                </option>
+            }
+            else
+            {
+                <option value="totalPrice">
+                    Sort by Total Price
+                </option>
+            }
+
+            @if (ViewBag.SortBy == "status")
+            {
+                <option value="status" selected>
+                    Sort by Status
+                </option>
+            }
+            else
+            {
+                <option value="status">
+                    Sort by Status
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-2">
+
+        <select name="sortDirection"
+                class="form-control">
+
+            @if (ViewBag.SortDirection == "asc")
+            {
+                <option value="asc" selected>
+                    ↑ Asc
+                </option>
+            }
+            else
+            {
+                <option value="asc">
+                    ↑ Asc
+                </option>
+            }
+
+            @if (ViewBag.SortDirection == "desc")
+            {
+                <option value="desc" selected>
+                    ↓ Desc
+                </option>
+            }
+            else
+            {
+                <option value="desc">
+                    ↓ Desc
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-1">
+        <button type="submit"
+                class="btn btn-primary w-100">
+            Search
+        </button>
+    </div>
+
+    <div class="col-md-1">
+        <a asp-action="Index"
+           class="btn btn-secondary w-100">
+            Refresh
+        </a>
+    </div>
+
+</form>
+
+<table class="table table-bordered table-striped align-middle">
+
+    <thead class="table-dark">
+
+        <tr>
+            <th>User Email</th>
+            <th>Equipment</th>
+            <th>Rent Date</th>
+            <th>Return Date</th>
+            <th>Total Price</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.UserEmail</td>
+
+                <td>@item.EquipmentName</td>
+
+                <td>
+                    @item.RentDate.ToString("dd.MM.yyyy HH:mm")
+                </td>
+
+                <td>
+                    @(item.ReturnDate.HasValue
+                        ? item.ReturnDate.Value.ToString("dd.MM.yyyy HH:mm")
+                        : "Not specified")
+                </td>
+
+                <td>@item.TotalPrice</td>
+
+                <td>
+
+                    <span class="badge bg-info text-dark">
+                        @item.Status
+                    </span>
+
+                </td>
+
+                <td>
+
+                    <div class="d-flex gap-1 flex-wrap">
+
+                        <a asp-action="Details"
+                           asp-route-id="@item.Id"
+                           class="btn btn-info btn-sm">
+                            Details
+                        </a>
+
+                        <a asp-action="Edit"
+                           asp-route-id="@item.Id"
+                           class="btn btn-warning btn-sm">
+                            Edit
+                        </a>
+
+                        @if (role == "Admin")
+                        {
+                            <a asp-action="Delete"
+                               asp-route-id="@item.Id"
+                               class="btn btn-danger btn-sm">
+                                Delete
+                            </a>
+                        }
+
+                    </div>
+
+                </td>
+
+            </tr>
+        }
+
+    </tbody>
+
+</table>
+
+<div class="mt-4 d-flex gap-2">
+
+    @if (pageNumber > 1)
+    {
+        <a asp-action="Index"
+           asp-route-pageNumber="@(pageNumber - 1)"
+           asp-route-userEmail="@ViewBag.UserEmail"
+           asp-route-equipmentName="@ViewBag.EquipmentName"
+           asp-route-status="@ViewBag.Status"
+           asp-route-sortBy="@ViewBag.SortBy"
+           asp-route-sortDirection="@ViewBag.SortDirection"
+           class="btn btn-outline-primary">
+            Previous
+        </a>
+    }
+
+    <span class="btn btn-light disabled">
+        Page @pageNumber
+    </span>
+
+    @if (Model.Any())
+    {
+        <a asp-action="Index"
+           asp-route-pageNumber="@(pageNumber + 1)"
+           asp-route-userEmail="@ViewBag.UserEmail"
+           asp-route-equipmentName="@ViewBag.EquipmentName"
+           asp-route-status="@ViewBag.Status"
+           asp-route-sortBy="@ViewBag.SortBy"
+           asp-route-sortDirection="@ViewBag.SortDirection"
+           class="btn btn-outline-primary">
+            Next
+        </a>
+    }
+
+</div>

@@ -1,0 +1,151 @@
+﻿@model FitnessRental.Web.Models.EquipmentRentalViewModel
+
+@{
+    ViewData["Title"] = "Edit Rental";
+    var role = Context.Session.GetString("UserRole");
+}
+
+<h2>Edit Rental</h2>
+
+<hr />
+
+<form asp-action="Edit" method="post">
+
+    <div asp-validation-summary="ModelOnly"
+         class="text-danger mb-3">
+    </div>
+
+    <input type="hidden" asp-for="Id" />
+
+    @if (role == "Admin")
+    {
+        <div class="mb-3">
+
+            <label asp-for="UserId"
+                   class="form-label">
+                User Id
+            </label>
+
+            <input asp-for="UserId"
+                   type="number"
+                   class="form-control" />
+
+            <span asp-validation-for="UserId"
+                  class="text-danger"></span>
+
+        </div>
+    }
+    else
+    {
+        <input type="hidden" asp-for="UserId" />
+    }
+
+    <div class="mb-3">
+
+        <label asp-for="FitnessEquipmentId"
+               class="form-label">
+            Fitness Equipment
+        </label>
+
+        <select asp-for="FitnessEquipmentId"
+                asp-items="ViewBag.Equipments"
+                class="form-control">
+
+            <option value="">
+                -- Select equipment --
+            </option>
+
+        </select>
+
+        <span asp-validation-for="FitnessEquipmentId"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="RentDate"
+               class="form-label">
+            Rent Date
+        </label>
+
+        <input asp-for="RentDate"
+               type="datetime-local"
+               class="form-control" />
+
+        <span asp-validation-for="RentDate"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="ReturnDate"
+               class="form-label">
+            Return Date
+        </label>
+
+        <input asp-for="ReturnDate"
+               type="datetime-local"
+               class="form-control" />
+
+        <span asp-validation-for="ReturnDate"
+              class="text-danger"></span>
+
+    </div>
+
+    <input type="hidden" asp-for="TotalPrice" />
+
+    <div class="alert alert-info">
+
+        Total price is calculated automatically
+        based on rental duration.
+
+    </div>
+
+    @if (role == "Admin")
+    {
+        <div class="mb-3">
+
+            <label asp-for="Status"
+                   class="form-label">
+                Status
+            </label>
+
+            <select asp-for="Status"
+                    class="form-control">
+
+                <option value="Active">Active</option>
+                <option value="Returned">Returned</option>
+                <option value="Cancelled">Cancelled</option>
+
+            </select>
+
+            <span asp-validation-for="Status"
+                  class="text-danger"></span>
+
+        </div>
+    }
+    else
+    {
+        <input type="hidden" asp-for="Status" />
+    }
+
+    <button type="submit"
+            class="btn btn-warning">
+        Save
+    </button>
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+        Back
+    </a>
+
+</form>
+
+@section Scripts
+{
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

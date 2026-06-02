@@ -1,0 +1,32 @@
+﻿@model FitnessRental.Web.Models.EquipmentRentalViewModel
+
+@{
+    ViewData["Title"] = "Rental Details";
+}
+
+<h2>Rental Details</h2>
+
+<hr />
+
+<dl class="row">
+    <dt class="col-sm-3">User Email</dt>
+    <dd class="col-sm-9">@Model.UserEmail</dd>
+
+    <dt class="col-sm-3">Equipment</dt>
+    <dd class="col-sm-9">@Model.EquipmentName</dd>
+
+    <dt class="col-sm-3">Rent Date</dt>
+    <dd class="col-sm-9">@Model.RentDate</dd>
+
+    <dt class="col-sm-3">Return Date</dt>
+    <dd class="col-sm-9">@Model.ReturnDate</dd>
+
+    <dt class="col-sm-3">Total Price</dt>
+    <dd class="col-sm-9">@Model.TotalPrice</dd>
+
+    <dt class="col-sm-3">Status</dt>
+    <dd class="col-sm-9">@Model.Status</dd>
+</dl>
+
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+<a asp-action="Index" class="btn btn-secondary">Back</a>

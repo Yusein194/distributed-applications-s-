@@ -1,0 +1,74 @@
+﻿@model FitnessRental.Web.Models.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+    var email = Context.Session.GetString("UserEmail");
+    var role = Context.Session.GetString("UserRole");
+}
+
+<h2>Fitness Hub</h2>
+
+<p class="text-muted">
+    Welcome, @email (@role)
+</p>
+
+<div class="row mt-4">
+
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm border-primary">
+            <div class="card-body">
+                <h5>Fitness Equipment</h5>
+
+                <h2>@Model.EquipmentCount</h2>
+
+                <p>Total fitness equipment records.</p>
+
+                <a asp-controller="FitnessEquipments"
+                   asp-action="Index"
+                   class="btn btn-primary">
+                    Open Equipment
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm border-success">
+            <div class="card-body">
+                <h5>Rentals</h5>
+
+                <h2>@Model.RentalsCount</h2>
+
+                <p>Total rental records.</p>
+
+                <a asp-controller="EquipmentRentals"
+                   asp-action="Index"
+                   class="btn btn-success">
+                    Open Rentals
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (role == "Admin")
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body">
+                    <h5>Users</h5>
+
+                    <h2>@Model.UsersCount</h2>
+
+                    <p>Total registered users.</p>
+
+                    <a asp-controller="Users"
+                       asp-action="Index"
+                       class="btn btn-warning">
+                        Open Users
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>

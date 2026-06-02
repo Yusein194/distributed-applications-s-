@@ -1,0 +1,144 @@
+﻿@model FitnessRental.Web.Models.UserViewModel
+
+@{
+    ViewData["Title"] = "Edit User";
+    var role = Context.Session.GetString("UserRole");
+}
+
+@if (role != "Admin")
+{
+    <div class="alert alert-danger">
+        Only Admin can edit users.
+    </div>
+
+    <a asp-action="Index" class="btn btn-secondary">
+        Back
+    </a>
+
+    return;
+}
+
+<h2>Edit User</h2>
+
+<hr />
+
+<form asp-action="Edit" method="post">
+
+    <div asp-validation-summary="ModelOnly"
+         class="text-danger mb-3">
+    </div>
+
+    <input type="hidden" asp-for="Id" />
+
+    <div class="mb-3">
+
+        <label asp-for="FirstName"
+               class="form-label">
+            First Name
+        </label>
+
+        <input asp-for="FirstName"
+               class="form-control" />
+
+        <span asp-validation-for="FirstName"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="LastName"
+               class="form-label">
+            Last Name
+        </label>
+
+        <input asp-for="LastName"
+               class="form-control" />
+
+        <span asp-validation-for="LastName"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Email"
+               class="form-label">
+            Email
+        </label>
+
+        <input asp-for="Email"
+               type="email"
+               class="form-control" />
+
+        <span asp-validation-for="Email"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Role"
+               class="form-label">
+            Role
+        </label>
+
+        <select asp-for="Role"
+                class="form-control">
+
+            <option value="User">User</option>
+
+            <option value="Admin">Admin</option>
+
+        </select>
+
+        <span asp-validation-for="Role"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="PhoneNumber"
+               class="form-label">
+            Phone Number
+        </label>
+
+        <input asp-for="PhoneNumber"
+               class="form-control" />
+
+        <span asp-validation-for="PhoneNumber"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="form-check mb-3">
+
+        <input asp-for="IsActive"
+               class="form-check-input" />
+
+        <label asp-for="IsActive"
+               class="form-check-label">
+            Active
+        </label>
+
+    </div>
+
+    <button type="submit"
+            class="btn btn-warning">
+        Save
+    </button>
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+        Back
+    </a>
+
+</form>
+
+@section Scripts
+{
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

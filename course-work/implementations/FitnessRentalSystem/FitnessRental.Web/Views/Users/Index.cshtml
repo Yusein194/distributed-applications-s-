@@ -1,0 +1,347 @@
+﻿    @model IEnumerable<FitnessRental.Web.Models.UserViewModel>
+
+@{
+    ViewData["Title"] = "Users";
+    var role = Context.Session.GetString("UserRole");
+    int pageNumber = ViewBag.PageNumber ?? 1;
+}
+
+@if (role != "Admin")
+{
+    <div class="alert alert-danger">
+        Only Admin can access the users page.
+    </div>
+
+    <a asp-controller="Home"
+       asp-action="Index"
+       class="btn btn-secondary">
+        Back
+    </a>
+
+    return;
+}
+
+<h2>Users</h2>
+
+<p>
+    <a asp-action="Create"
+       class="btn btn-primary">
+        Add New User
+    </a>
+</p>
+
+<form asp-action="Index" method="get" class="row mb-3">
+
+    <input type="hidden" name="pageNumber" value="1" />
+
+    <div class="col-md-2">
+        <input name="firstName"
+               value="@ViewBag.FirstName"
+               class="form-control"
+               placeholder="First name" />
+    </div>
+
+    <div class="col-md-2">
+        <input name="lastName"
+               value="@ViewBag.LastName"
+               class="form-control"
+               placeholder="Last name" />
+    </div>
+
+    <div class="col-md-2">
+        <input name="email"
+               value="@ViewBag.Email"
+               class="form-control"
+               placeholder="Email" />
+    </div>
+
+    <div class="col-md-2">
+
+        <select name="role"
+                class="form-control">
+
+            <option value="">All Roles</option>
+
+            @if (ViewBag.Role == "Admin")
+            {
+                <option value="Admin" selected>
+                    Admin
+                </option>
+            }
+            else
+            {
+                <option value="Admin">
+                    Admin
+                </option>
+            }
+
+            @if (ViewBag.Role == "User")
+            {
+                <option value="User" selected>
+                    User
+                </option>
+            }
+            else
+            {
+                <option value="User">
+                    User
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-2">
+
+        <select name="sortBy"
+                class="form-control">
+
+            @if (ViewBag.SortBy == "firstName")
+            {
+                <option value="firstName" selected>
+                    Sort by First Name
+                </option>
+            }
+            else
+            {
+                <option value="firstName">
+                    Sort by First Name
+                </option>
+            }
+
+            @if (ViewBag.SortBy == "lastName")
+            {
+                <option value="lastName" selected>
+                    Sort by Last Name
+                </option>
+            }
+            else
+            {
+                <option value="lastName">
+                    Sort by Last Name
+                </option>
+            }
+
+            @if (ViewBag.SortBy == "email")
+            {
+                <option value="email" selected>
+                    Sort by Email
+                </option>
+            }
+            else
+            {
+                <option value="email">
+                    Sort by Email
+                </option>
+            }
+
+            @if (ViewBag.SortBy == "role")
+            {
+                <option value="role" selected>
+                    Sort by Role
+                </option>
+            }
+            else
+            {
+                <option value="role">
+                    Sort by Role
+                </option>
+            }
+
+            @if (ViewBag.SortBy == "createdAt")
+            {
+                <option value="createdAt" selected>
+                    Sort by Created
+                </option>
+            }
+            else
+            {
+                <option value="createdAt">
+                    Sort by Created
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-1">
+
+        <select name="sortDirection"
+                class="form-control">
+
+            @if (ViewBag.SortDirection == "asc")
+            {
+                <option value="asc" selected>
+                    ↑ ASC
+                </option>
+            }
+            else
+            {
+                <option value="asc">
+                    ↑ ASC
+                </option>
+            }
+
+            @if (ViewBag.SortDirection == "desc")
+            {
+                <option value="desc" selected>
+                    ↓ DESC
+                </option>
+            }
+            else
+            {
+                <option value="desc">
+                    ↓ DESC
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-1">
+        <button type="submit"
+                class="btn btn-primary w-100">
+            Search
+        </button>
+    </div>
+
+    <div class="col-md-1">
+        <a asp-action="Index"
+           class="btn btn-secondary w-100">
+            Refresh
+        </a>
+    </div>
+
+</form>
+
+<table class="table table-bordered table-striped align-middle">
+
+    <thead class="table-dark">
+
+        <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Phone</th>
+            <th>Active</th>
+            <th>Created At</th>
+            <th>Actions</th>
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach (var item in Model)
+        {
+            <tr>
+
+                <td>@item.FirstName</td>
+
+                <td>@item.LastName</td>
+
+                <td>@item.Email</td>
+
+                <td>
+                    <span class="badge bg-info text-dark">
+                        @item.Role
+                    </span>
+                </td>
+
+                <td>@item.PhoneNumber</td>
+
+                <td>
+
+                    @if (item.IsActive)
+                    {
+                        <span class="badge bg-success">
+                            Yes
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">
+                            No
+                        </span>
+                    }
+
+                </td>
+
+                <td>
+                    @item.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                </td>
+
+                <td>
+
+                    <div class="d-flex gap-1 flex-wrap">
+
+                        <a asp-action="Details"
+                           asp-route-id="@item.Id"
+                           class="btn btn-info btn-sm">
+                            Details
+                        </a>
+
+                        <a asp-action="Edit"
+                           asp-route-id="@item.Id"
+                           class="btn btn-warning btn-sm">
+                            Edit
+                        </a>
+
+                        <a asp-action="Delete"
+                           asp-route-id="@item.Id"
+                           class="btn btn-danger btn-sm">
+                            Delete
+                        </a>
+
+                    </div>
+
+                </td>
+
+            </tr>
+        }
+
+    </tbody>
+
+</table>
+
+<div class="mt-4 d-flex gap-2">
+
+    @if (pageNumber > 1)
+    {
+        <a asp-action="Index"
+           asp-route-pageNumber="@(pageNumber - 1)"
+           asp-route-firstName="@ViewBag.FirstName"
+           asp-route-lastName="@ViewBag.LastName"
+           asp-route-email="@ViewBag.Email"
+           asp-route-role="@ViewBag.Role"
+           asp-route-sortBy="@ViewBag.SortBy"
+           asp-route-sortDirection="@ViewBag.SortDirection"
+           class="btn btn-outline-primary">
+            Previous
+        </a>
+    }
+
+    <span class="btn btn-light disabled">
+        Page @pageNumber
+    </span>
+
+    @if (Model.Any())
+    {
+        <a asp-action="Index"
+           asp-route-pageNumber="@(pageNumber + 1)"
+           asp-route-firstName="@ViewBag.FirstName"
+           asp-route-lastName="@ViewBag.LastName"
+           asp-route-email="@ViewBag.Email"
+           asp-route-role="@ViewBag.Role"
+           asp-route-sortBy="@ViewBag.SortBy"
+           asp-route-sortDirection="@ViewBag.SortDirection"
+           class="btn btn-outline-primary">
+            Next
+        </a>
+    }
+
+</div>

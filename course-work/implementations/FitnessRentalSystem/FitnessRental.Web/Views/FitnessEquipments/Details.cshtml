@@ -1,0 +1,121 @@
+﻿@model FitnessRental.Web.Models.FitnessEquipmentViewModel
+
+@{
+    ViewData["Title"] = "Equipment Details";
+    var role = Context.Session.GetString("UserRole");
+}
+
+<h2>Equipment Details</h2>
+
+<hr />
+
+<div class="row">
+
+    <div class="col-md-4">
+
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <img src="@Model.ImageUrl"
+                 class="img-fluid rounded shadow border"
+                 style="max-height: 400px; object-fit: cover;" />
+        }
+        else
+        {
+            <div class="border rounded p-5 text-center text-muted">
+                No image available
+            </div>
+        }
+
+    </div>
+
+    <div class="col-md-8">
+
+        <dl class="row">
+
+            <dt class="col-sm-4">
+                Name
+            </dt>
+
+            <dd class="col-sm-8">
+                @Model.Name
+            </dd>
+
+            <dt class="col-sm-4">
+                Brand
+            </dt>
+
+            <dd class="col-sm-8">
+                @Model.Brand
+            </dd>
+
+            <dt class="col-sm-4">
+                Type
+            </dt>
+
+            <dd class="col-sm-8">
+                @Model.EquipmentType
+            </dd>
+
+            <dt class="col-sm-4">
+                Functionality
+            </dt>
+
+            <dd class="col-sm-8">
+                @Model.Functionality
+            </dd>
+
+            <dt class="col-sm-4">
+                Weight
+            </dt>
+
+            <dd class="col-sm-8">
+                @Model.Weight
+            </dd>
+
+            <dt class="col-sm-4">
+                Price Per Day
+            </dt>
+
+            <dd class="col-sm-8">
+                @Model.RentalPricePerDay
+            </dd>
+
+            <dt class="col-sm-4">
+                Available
+            </dt>
+
+            <dd class="col-sm-8">
+                @(Model.IsAvailable ? "Yes" : "No")
+            </dd>
+
+            <dt class="col-sm-4">
+                Created At
+            </dt>
+
+            <dd class="col-sm-8">
+                @Model.CreatedAt
+            </dd>
+
+        </dl>
+
+        <div class="mt-4">
+
+            @if (role == "Admin")
+            {
+                <a asp-action="Edit"
+                   asp-route-id="@Model.Id"
+                   class="btn btn-warning">
+                    Edit
+                </a>
+            }
+
+            <a asp-action="Index"
+               class="btn btn-secondary">
+                Back
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
